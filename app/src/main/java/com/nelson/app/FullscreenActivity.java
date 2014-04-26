@@ -5,8 +5,10 @@ import com.nelson.app.util.SystemUiHider;
 import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -19,9 +21,14 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Set;
+import java.util.UUID;
 
 
 /******Global Parameters***********/
@@ -40,7 +47,18 @@ public class FullscreenActivity extends Activity {
     private static final boolean AUTO_HIDE = true;
     private final static int REQUEST_ENABLE_BT = 1;
     private BluetoothAdapter mBluetoothAdapter;
-    private ArrayAdapter mArrayAdapter;
+    private BluetoothSocket mBluetoothSocket;
+    private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    private static OutputStream mOutputStream = null;
+    private static BluetoothDevice mdevice;
+
+    //Control button
+    private Button mUpBtn, mStopBtn, mDownBtn;
+    private TextView mMessageOutput;
+
+    //private int mCount=0;
+    //private TextView mTextViewConnect1;
+    //private TextView mTextViewConnect2;
 
     /**
      * If {@link #AUTO_HIDE} is set, the number of milliseconds to wait after
@@ -132,9 +150,35 @@ public class FullscreenActivity extends Activity {
         // Upon interacting with UI controls, delay any scheduled hide()
         // operations to prevent the jarring behavior of controls going away
         // while interacting with the UI.
-        findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
+        //findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
 
         InitAction();
+
+        mMessageOutput = (TextView)findViewById(R.id.messageoutput);
+        mUpBtn = (Button)findViewById(R.id.upbutton);
+        mStopBtn = (Button)findViewById(R.id.stopbutton);
+        mDownBtn = (Button)findViewById(R.id.downbutton);
+        mUpBtn.setOnClickListener(new Button.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                mMessageOutput.setText("User press Up button");
+                sendCommand("IamUpButton\n");
+            }
+        });
+        mStopBtn.setOnClickListener(new Button.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                mMessageOutput.setText("User press Stop button");
+                sendCommand("IamStopButton\n");
+            }
+        });
+        mDownBtn.setOnClickListener(new Button.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                mMessageOutput.setText("User press Down button");
+                sendCommand("IamDownButton\n");
+            }
+        });
 
     }
 
@@ -154,6 +198,20 @@ public class FullscreenActivity extends Activity {
         unregisterReceiver(mReceiver);
     }
 
+    @Override
+    protected void onPause() {
+        /*
+        super.onPause();
+        try {
+            if (mBluetoothSocket.isConnected()){
+                mBluetoothSocket.close();
+            }
+            unregisterReceiver(mReceiver);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        */
+    }
 
     /**
      * Touch listener to use for in-layout UI controls to delay hiding the
@@ -225,7 +283,43 @@ public class FullscreenActivity extends Activity {
         }
     }
 
-    public boolean CommunicationWithBtDevice()
+    private void ShowAlertDialog(String msg){
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+        /*
+        AlertDialog.Builder alertdialog = new AlertDialog.Builder(this);
+        alertdialog.setTitle("中文測試");
+        alertdialog.setMessage(msg);
+        alertdialog.show();
+        delayedHide(2000);
+        */
+    }
+    private void sendCommand(String message){
+        Log.d("NelsonDBG","send the message - " +message+ " - to arduino.");
+        try{
+            //mBluetoothSocket = mdevice.createInsecureRfcommSocketToServiceRecord(MY_UUID);
+            if(!mBluetoothSocket.isConnected()){
+                Log.d("NelsonDBG","bluetooth socket is not connected and try to connect again.");
+                mBluetoothSocket.connect();
+            }
+            else{
+                Log.d("NelsonDBG","bluetooth socket is connected.");
+            }
+
+            mOutputStream = mBluetoothSocket.getOutputStream();
+            Log.d("NelsonDBG","getOutoutStream ok");
+
+            mOutputStream.write(message.getBytes());
+            Log.d("NelsonDBG","write ok");
+
+            //mBluetoothSocket.close();
+        }
+        catch(IOException e){
+            Log.d("NelsonDBG","****Something wrong in function - setCommand ****");
+            ShowAlertDialog("請重新連線藍芽裝置");
+        }
+    }
+
+    private boolean CommunicationWithBtDevice()
     {
         Log.d("NelsonDBG","run CommunicationWithBtDevice");
         Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
@@ -235,10 +329,35 @@ public class FullscreenActivity extends Activity {
             // Loop through paired devices
             for (BluetoothDevice device : pairedDevices) {
                 // Add the name and address to an array adapter to show in a ListView
-                mArrayAdapter.add(device.getName() + "\n" + device.getAddress());
-                Log.d("NelsonDBG","pairedDevices: "+device.getName() + "\t" + device.getAddress());
+                //Log.d("NelsonDBG","pairedDevices: "+device.getName() + "\t" + device.getAddress());
+
+                String strdevicename = "“nelsonchung”的 MacBook Pro";
+                if(device.getName().equals(strdevicename)){
+                    try{
+                        Log.d("NelsonDBG","check the device name is " +strdevicename);
+                        //mBluetoothAdapter.cancelDiscovery();
+                        mdevice = device;
+                        mBluetoothSocket = device.createInsecureRfcommSocketToServiceRecord(MY_UUID);
+                        mBluetoothSocket.connect();
+                        Log.d("NelsonDBG","get bluetooth socket ok");
+                        mOutputStream = mBluetoothSocket.getOutputStream();
+                        Log.d("NelsonDBG","getOutoutStream ok");
+
+                        String message = "hello";
+                        mOutputStream.write(message.getBytes());
+                        Log.d("NelsonDBG","write ok");
+
+                        //mBluetoothSocket.close();
+                    }
+                    catch(IOException e){
+                        Log.d("NelsonDBG","****Something wrong ****");
+                        ShowAlertDialog("請重新連線藍芽裝置");
+                    }
+
+                }
             }
         }
+        /* Nelson: Let user to pair bluetooth via the bt connection in device.
         else //No Any paired devices, so we need to discover devices
         {
             Log.d("NelsonDBG","start bt discovery");
@@ -253,6 +372,7 @@ public class FullscreenActivity extends Activity {
             registerReceiver(mReceiver, filter); // Don't forget to unregister during onDestroy
             mBluetoothAdapter.startDiscovery();
         }
+        */
         return true;
     }
 
@@ -266,9 +386,23 @@ public class FullscreenActivity extends Activity {
                 // Get the BluetoothDevice object from the Intent
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 // Add the name and address to an array adapter to show in a ListView
-                //mArrayAdapter.add(device.getName() + "\n" + device.getAddress());
                 Log.d("NelsonDBG","1");
                 Log.d("NelsonDBG","search devices: "+device.getName() + "\t" + device.getAddress());
+
+                /*switch(mCount)
+                {
+                    case 0:
+                        mTextViewConnect1 = (TextView) findViewById(R.id.connect1);
+                        mTextViewConnect1.setText(device.getName());
+                        break;
+                    case 1:
+                        mTextViewConnect2 = (TextView) findViewById(R.id.connect2);
+                        mTextViewConnect2.setText(device.getName());
+                        break;
+                    default:
+                        break;
+
+                }*/
             }
             else
             {

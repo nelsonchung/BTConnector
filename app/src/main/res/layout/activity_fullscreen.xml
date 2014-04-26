@@ -33,14 +33,46 @@
             android:orientation="horizontal"
             tools:ignore="UselessParent">
 
-            <Button android:id="@+id/dummy_button"
-                style="?metaButtonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/dummy_button" />
-
         </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_gravity="left|center_vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="98dp"
+                android:id="@+id/connect1"
+                android:layout_gravity="left|top" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="131dp"
+                android:id="@+id/messageoutput"
+                android:layout_gravity="left|center_vertical" />
+
+            <Button
+                android:layout_width="match_parent"
+                android:layout_height="97dp"
+                android:text="鐵門向上"
+                android:id="@+id/upbutton"
+                android:layout_gravity="center_horizontal|top" />
+
+            <Button
+                android:layout_width="match_parent"
+                android:layout_height="97dp"
+                android:text="鐵門停止"
+                android:id="@+id/stopbutton"
+                android:layout_gravity="center" />
+
+            <Button
+                android:layout_width="match_parent"
+                android:layout_height="97dp"
+                android:text="鐵門向下"
+                android:id="@+id/downbutton"
+                android:layout_gravity="left|bottom" />
+        </FrameLayout>
 
     </FrameLayout>
 
